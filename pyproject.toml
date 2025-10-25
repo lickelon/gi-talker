@@ -3,7 +3,7 @@ name = "gi-talker"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.11,<3.13"
 dependencies = [
     "discord-py>=2.6.4",
     "numpy>=1.23,<2.0",
