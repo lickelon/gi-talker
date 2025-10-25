@@ -7,6 +7,7 @@ from typing import Optional
 
 import discord
 from discord import app_commands
+from discord.errors import HTTPException, NotFound
 
 from .config import BotSettings
 from .preferences import UserPreferences
