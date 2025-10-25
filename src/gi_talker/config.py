@@ -42,6 +42,8 @@ class BotSettings:
     melotts_sdp_ratio: float = 0.2
     melotts_noise_scale: float = 0.6
     melotts_noise_scale_w: float = 0.8
+    # 명령 동기화를 빠르게 할 길드 ID 목록
+    command_guild_ids: tuple[int, ...] = ()
 
 
 def load_settings() -> BotSettings:
@@ -73,6 +75,13 @@ def load_settings() -> BotSettings:
     noise_scale_w_raw = os.getenv("MELOTTS_NOISE_SCALE_W")
     melotts_noise_scale_w = float(noise_scale_w_raw) if noise_scale_w_raw else 0.8
 
+    guild_ids_raw = os.getenv("COMMAND_GUILD_IDS", "").strip()
+    guild_ids: tuple[int, ...] = tuple(
+        int(item)
+        for item in guild_ids_raw.split(",")
+        if item.strip().isdigit()
+    ) if guild_ids_raw else ()
+
     return BotSettings(
         token=token,
         default_voice_channel_id=channel_id,
@@ -86,4 +95,5 @@ def load_settings() -> BotSettings:
         melotts_sdp_ratio=melotts_sdp_ratio,
         melotts_noise_scale=melotts_noise_scale,
         melotts_noise_scale_w=melotts_noise_scale_w,
+        command_guild_ids=guild_ids,
     )

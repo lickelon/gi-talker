@@ -18,13 +18,24 @@ class MeloTTSBot(discord.Client):
         self._tts_engine = tts_engine
         self._logger = logging.getLogger("gi_talker.bot")
         self._voice_session: Optional[VoiceSession] = None
+        self._command_guild_ids = settings.command_guild_ids
         intents = discord.Intents.default()
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self) -> None:
-        await self.tree.sync()
-        self._logger.debug("Slash commands synchronized")
+        if self._command_guild_ids:
+            for guild_id in set(self._command_guild_ids):
+                guild = discord.Object(id=guild_id)
+                self.tree.copy_global_to(guild=guild)
+                await self.tree.sync(guild=guild)
+            self._logger.debug(
+                "Slash commands synchronized for guilds: %s",
+                ", ".join(str(gid) for gid in self._command_guild_ids),
+            )
+        else:
+            await self.tree.sync()
+            self._logger.debug("Slash commands synchronized globally")
 
     async def on_ready(self) -> None:
         self._logger.info("로그인 완료: %s", self.user)
