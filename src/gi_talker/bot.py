@@ -110,8 +110,18 @@ def register_commands(bot: MeloTTSBot) -> None:
     @app_commands.describe(text="재생할 메시지")
     async def say(interaction: discord.Interaction, text: str) -> None:
         if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True, thinking=True)
-        await interaction.followup.send("TTS를 재생할게요.", ephemeral=True)
+            try:
+                await interaction.response.defer(ephemeral=True, thinking=True)
+            except NotFound:
+                return
+            except HTTPException as exc:
+                bot._logger.warning("Failed to defer interaction: %s", exc)
+                return
+        try:
+            await interaction.followup.send("TTS를 재생할게요.", ephemeral=True)
+        except HTTPException as exc:
+            bot._logger.warning("Failed to send followup: %s", exc)
+            return
         try:
             session = await bot._ensure_session(interaction)
         except RuntimeError as exc:
