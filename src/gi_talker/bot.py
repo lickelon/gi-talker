@@ -109,7 +109,9 @@ def register_commands(bot: MeloTTSBot) -> None:
     @bot.tree.command(name="say", description="텍스트를 음성으로 재생합니다.")
     @app_commands.describe(text="재생할 메시지")
     async def say(interaction: discord.Interaction, text: str) -> None:
-        await interaction.response.send_message("TTS를 재생할게요.", ephemeral=True)
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.followup.send("TTS를 재생할게요.", ephemeral=True)
         try:
             session = await bot._ensure_session(interaction)
         except RuntimeError as exc:
