@@ -26,16 +26,22 @@ class BotSettings:
     default_voice_channel_id: Optional[int] = None
     # 이후 텍스트 전처리 등 옵션 추가를 고려해 확장 포인트 마련
     command_prefix: str = "!"
-    # Kokoro 모델 파일 경로
-    kokoro_model_path: Path = field(default_factory=lambda: Path("models/kokoro-82m.onnx"))
-    # Kokoro 음성 임베딩 파일 경로
-    kokoro_voices_path: Path = field(default_factory=lambda: Path("models/voices-v1.0.bin"))
-    # 기본 음성 화자 지정
-    kokoro_default_voice: Optional[str] = None
-    # 기본 언어 코드
-    kokoro_default_locale: str = "en-us"
-    # 기본 발화 속도
-    kokoro_default_speed: float = 1.0
+    # MeloTTS 기본 언어 코드 (예: KR, EN, JP)
+    melotts_language: str = "KR"
+    # 화자 이름(환경에 따라 존재하는 이름이어야 함)
+    melotts_speaker: Optional[str] = None
+    # 화자 ID를 직접 지정할 수도 있음
+    melotts_speaker_id: Optional[int] = None
+    # 디바이스(auto/cpu/cuda/mps)
+    melotts_device: Optional[str] = None
+    # Hugging Face에서 모델을 내려받을지 여부
+    melotts_use_hf: bool = True
+    # 합성 속도
+    melotts_speed: float = 1.0
+    # 합성 시 사용되는 파라미터들
+    melotts_sdp_ratio: float = 0.2
+    melotts_noise_scale: float = 0.6
+    melotts_noise_scale_w: float = 0.8
 
 
 def load_settings() -> BotSettings:
@@ -51,24 +57,33 @@ def load_settings() -> BotSettings:
 
     prefix = os.getenv("COMMAND_PREFIX", "!")
 
-    model_path = Path(
-        os.getenv("KOKORO_MODEL_PATH", "models/kokoro-82m.onnx")
-    ).expanduser()
-    voices_path = Path(
-        os.getenv("KOKORO_VOICES_PATH", "models/voices-v1.0.bin")
-    ).expanduser()
-    default_voice = os.getenv("KOKORO_DEFAULT_VOICE")
-    default_locale = os.getenv("KOKORO_DEFAULT_LOCALE", "en-us")
-    speed_raw = os.getenv("KOKORO_DEFAULT_SPEED")
-    default_speed = float(speed_raw) if speed_raw else 1.0
+    melotts_language = os.getenv("MELOTTS_LANGUAGE", "KR")
+    melotts_speaker = os.getenv("MELOTTS_SPEAKER")
+    speaker_id_raw = os.getenv("MELOTTS_SPEAKER_ID")
+    melotts_speaker_id = int(speaker_id_raw) if speaker_id_raw else None
+    melotts_device = os.getenv("MELOTTS_DEVICE")
+    use_hf_raw = os.getenv("MELOTTS_USE_HF", "true").lower()
+    melotts_use_hf = use_hf_raw not in {"false", "0", "no"}
+    speed_raw = os.getenv("MELOTTS_SPEED")
+    melotts_speed = float(speed_raw) if speed_raw else 1.0
+    sdp_ratio_raw = os.getenv("MELOTTS_SDP_RATIO")
+    melotts_sdp_ratio = float(sdp_ratio_raw) if sdp_ratio_raw else 0.2
+    noise_scale_raw = os.getenv("MELOTTS_NOISE_SCALE")
+    melotts_noise_scale = float(noise_scale_raw) if noise_scale_raw else 0.6
+    noise_scale_w_raw = os.getenv("MELOTTS_NOISE_SCALE_W")
+    melotts_noise_scale_w = float(noise_scale_w_raw) if noise_scale_w_raw else 0.8
 
     return BotSettings(
         token=token,
         default_voice_channel_id=channel_id,
         command_prefix=prefix,
-        kokoro_model_path=model_path,
-        kokoro_voices_path=voices_path,
-        kokoro_default_voice=default_voice,
-        kokoro_default_locale=default_locale,
-        kokoro_default_speed=default_speed,
+        melotts_language=melotts_language,
+        melotts_speaker=melotts_speaker,
+        melotts_speaker_id=melotts_speaker_id,
+        melotts_device=melotts_device,
+        melotts_use_hf=melotts_use_hf,
+        melotts_speed=melotts_speed,
+        melotts_sdp_ratio=melotts_sdp_ratio,
+        melotts_noise_scale=melotts_noise_scale,
+        melotts_noise_scale_w=melotts_noise_scale_w,
     )

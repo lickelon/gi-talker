@@ -1,20 +1,20 @@
-# Kokoro-82M 디스코드 TTS 봇 개발 계획
+# MeloTTS 디스코드 TTS 봇 개발 계획
 
 ## 1. 목표 및 범위
-- Kokoro-82M 음성 합성 모델을 활용해 디스코드 음성 채널에서 실시간 TTS 제공
+- MeloTTS 멀티 언어 음성 합성 모델을 활용해 디스코드 음성 채널에서 실시간 TTS 제공
 - 텍스트 명령어 및 슬래시 커맨드 기반 상호작용 지원
 - 최소한의 지연으로 안정적인 음성 스트리밍 구현
 
 ## 2. 선행 조건
 - Python 3.10 이상, `discord.py 2.x`
-- Kokoro-82M 모델 가중치(ONNX 또는 PyTorch)와 추론 스크립트 확보
+- MeloTTS 패키지 및 의존성(torch, torchaudio 등) 설치
 - FFmpeg 설치(로컬 PCM/WAV → Opus 변환 용도)
 - GPU 사용 시 CUDA 환경, CPU 백업 경로 마련
 - 디스코드 봇 토큰 및 음성 권한 관리
 
 ## 3. 아키텍처 개요
 - `Bot Core`: `discord.ext.commands.Bot` 기반 이벤트 루프 및 슬래시 커맨드 등록
-- `TTS Pipeline`: 텍스트 정규화 → Kokoro 추론 → PCM/WAV 생성 → Opus 변환
+- `TTS Pipeline`: 텍스트 정규화 → MeloTTS 추론 → PCM/WAV 생성 → Opus 변환
 - `Session Manager`: 음성 채널 연결 상태, 재생 큐, 동시 요청 제한 제어
 - `Config & Secrets`: `.env` 로 민감 정보 관리, 설정 객체 주입
 - `Logging & Metrics`: 구조화 로그 + 기본 모니터링(재생 시간, 큐 길이)
@@ -22,7 +22,7 @@
 ## 4. 구현 단계
 1. **환경 구축**: 가상 환경, 의존성 명세(`pyproject.toml`), 예시 `.env` 작성
 2. **설정 모듈**: 환경변수 로딩, 경로/리소스 검증 유틸
-3. **Kokoro 래퍼**: 모델 로드, 음성 샘플 생성 함수, 캐시/온디맨드 로드 전략
+3. **MeloTTS 래퍼**: 언어/화자 로드, 모델 다운로드, 캐시 전략
 4. **오디오 변환기**: PCM → Opus 파이프 구성(FFmpeg 서브프로세스 or `discord.FFmpegPCMAudio`)
 5. **봇 골격**: 연결 이벤트, 기본 명령(`join`, `leave`, `ping`) 구현
 6. **TTS 명령어**: 텍스트 입력 검증, 언어/화자 선택 옵션, 큐 enqueue → 재생 루프

@@ -1,9 +1,9 @@
 import asyncio
 
-from .bot import KokoroTTSBot, register_commands
+from .bot import MeloTTSBot, register_commands
 from .config import load_settings
 from .logging_setup import configure_logging
-from .tts import KokoroEngine
+from .tts import MeloTtsEngine
 
 
 async def run_bot() -> None:
@@ -11,15 +11,19 @@ async def run_bot() -> None:
     configure_logging()
     # .env 기반 설정 로딩
     settings = load_settings()
-    # Kokoro 엔진은 환경 변수에서 지정한 모델/음성을 사용해 초기화
-    engine = KokoroEngine(
-        model_path=settings.kokoro_model_path,
-        voices_path=settings.kokoro_voices_path,
-        default_voice=settings.kokoro_default_voice,
-        default_locale=settings.kokoro_default_locale,
-        default_speed=settings.kokoro_default_speed,
+    # MeloTTS 엔진을 설정 값으로 초기화
+    engine = MeloTtsEngine(
+        language=settings.melotts_language,
+        default_speaker=settings.melotts_speaker,
+        default_speaker_id=settings.melotts_speaker_id,
+        device=settings.melotts_device,
+        use_hf=settings.melotts_use_hf,
+        default_speed=settings.melotts_speed,
+        default_sdp_ratio=settings.melotts_sdp_ratio,
+        default_noise_scale=settings.melotts_noise_scale,
+        default_noise_scale_w=settings.melotts_noise_scale_w,
     )
-    bot = KokoroTTSBot(settings=settings, tts_engine=engine)
+    bot = MeloTTSBot(settings=settings, tts_engine=engine)
     register_commands(bot)
     await bot.start(settings.token)
 

@@ -8,12 +8,12 @@ import discord
 from discord.ext import commands
 
 from .config import BotSettings
-from .tts import KokoroEngine, SynthesisRequest
+from .tts import MeloTtsEngine, SynthesisRequest
 from .voice import VoiceSession, ensure_voice
 
 
-class KokoroTTSBot(commands.Bot):
-    def __init__(self, settings: BotSettings, tts_engine: KokoroEngine) -> None:
+class MeloTTSBot(commands.Bot):
+    def __init__(self, settings: BotSettings, tts_engine: MeloTtsEngine) -> None:
         # 봇 동작에 필요한 설정과 의존성을 저장
         self._settings = settings
         self._tts_engine = tts_engine
@@ -74,7 +74,7 @@ class KokoroTTSBot(commands.Bot):
         await super().close()
 
 
-def register_commands(bot: KokoroTTSBot) -> None:
+def register_commands(bot: MeloTTSBot) -> None:
     # ping 명령은 헬스체크 용도로 사용
     @bot.command()
     async def ping(ctx: commands.Context) -> None:
@@ -102,13 +102,21 @@ def register_commands(bot: KokoroTTSBot) -> None:
         session = await bot._ensure_session(ctx)
         await ctx.reply(f"{session.channel.name} 채널로 음성을 전송할 준비를 해볼게요.")
 
-        request = SynthesisRequest(text=text)
+        request = SynthesisRequest(
+            text=text,
+            speaker=bot._settings.melotts_speaker,
+            speaker_id=bot._settings.melotts_speaker_id,
+            speed=bot._settings.melotts_speed,
+            sdp_ratio=bot._settings.melotts_sdp_ratio,
+            noise_scale=bot._settings.melotts_noise_scale,
+            noise_scale_w=bot._settings.melotts_noise_scale_w,
+        )
         try:
             result = bot._tts_engine.synthesize(request)
-        except FileNotFoundError as exc:
-            await ctx.reply(f"모델 리소스를 찾을 수 없어요: {exc}")
-            return
         except ValueError as exc:
+            await ctx.reply(str(exc))
+            return
+        except RuntimeError as exc:
             await ctx.reply(str(exc))
             return
         except Exception as exc:
