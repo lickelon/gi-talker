@@ -1,9 +1,6 @@
-# 디스코드 음성 채널 관리 유틸리티
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
-
 import discord
 
 
@@ -33,7 +30,6 @@ class VoiceSession:
 
 
 async def ensure_voice(
-    bot: discord.Client,
     target_channel: discord.VoiceChannel,
 ) -> VoiceSession:
     # 이미 연결된 경우 기존 세션 재사용
@@ -43,4 +39,3 @@ async def ensure_voice(
     # 새 연결을 생성하고 세션 래핑
     voice_client = await target_channel.connect()
     return VoiceSession(voice_client)
-

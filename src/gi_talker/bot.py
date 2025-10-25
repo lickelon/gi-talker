@@ -64,7 +64,7 @@ class KokoroTTSBot(commands.Bot):
             return self._voice_session
 
         target_channel = await self._resolve_target_channel(ctx)
-        self._voice_session = await ensure_voice(self, target_channel)
+        self._voice_session = await ensure_voice(target_channel)
         return self._voice_session
 
     async def close(self) -> None:
@@ -103,9 +103,19 @@ def register_commands(bot: KokoroTTSBot) -> None:
         await ctx.reply(f"{session.channel.name} 채널로 음성을 전송할 준비를 해볼게요.")
 
         request = SynthesisRequest(text=text)
-        # 실제 합성은 아직 미구현이라 예외 처리로 사용자에게 안내
         try:
-            bot._tts_engine.synthesize(request)
-        except NotImplementedError:
-            await ctx.reply("아직 음성 합성이 준비되지 않았어요. 곧 추가 예정입니다.")
+            result = bot._tts_engine.synthesize(request)
+        except FileNotFoundError as exc:
+            await ctx.reply(f"모델 리소스를 찾을 수 없어요: {exc}")
+            return
+        except ValueError as exc:
+            await ctx.reply(str(exc))
+            return
+        except Exception as exc:
+            bot._logger.exception("합성 실패", exc_info=exc)
+            await ctx.reply("합성 중 오류가 발생했어요.")
+            return
 
+        await ctx.reply(
+            f"샘플레이트 {result.sample_rate}Hz 합성 데이터를 확보했어요. 곧 재생 경로를 연결할게요."
+        )

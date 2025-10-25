@@ -21,4 +21,3 @@ def configure_logging(verbose: bool = False) -> None:
     root_logger.setLevel(level)
     root_logger.handlers.clear()
     root_logger.addHandler(handler)
-

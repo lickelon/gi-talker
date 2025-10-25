@@ -1,5 +1,5 @@
 # 환경 변수 기반 설정 로딩 모듈
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 import os
@@ -26,6 +26,16 @@ class BotSettings:
     default_voice_channel_id: Optional[int] = None
     # 이후 텍스트 전처리 등 옵션 추가를 고려해 확장 포인트 마련
     command_prefix: str = "!"
+    # Kokoro 모델 파일 경로
+    kokoro_model_path: Path = field(default_factory=lambda: Path("models/kokoro-82m.onnx"))
+    # Kokoro 음성 임베딩 파일 경로
+    kokoro_voices_path: Path = field(default_factory=lambda: Path("models/voices-v1.0.bin"))
+    # 기본 음성 화자 지정
+    kokoro_default_voice: Optional[str] = None
+    # 기본 언어 코드
+    kokoro_default_locale: str = "en-us"
+    # 기본 발화 속도
+    kokoro_default_speed: float = 1.0
 
 
 def load_settings() -> BotSettings:
@@ -41,9 +51,24 @@ def load_settings() -> BotSettings:
 
     prefix = os.getenv("COMMAND_PREFIX", "!")
 
+    model_path = Path(
+        os.getenv("KOKORO_MODEL_PATH", "models/kokoro-82m.onnx")
+    ).expanduser()
+    voices_path = Path(
+        os.getenv("KOKORO_VOICES_PATH", "models/voices-v1.0.bin")
+    ).expanduser()
+    default_voice = os.getenv("KOKORO_DEFAULT_VOICE")
+    default_locale = os.getenv("KOKORO_DEFAULT_LOCALE", "en-us")
+    speed_raw = os.getenv("KOKORO_DEFAULT_SPEED")
+    default_speed = float(speed_raw) if speed_raw else 1.0
+
     return BotSettings(
         token=token,
         default_voice_channel_id=channel_id,
         command_prefix=prefix,
+        kokoro_model_path=model_path,
+        kokoro_voices_path=voices_path,
+        kokoro_default_voice=default_voice,
+        kokoro_default_locale=default_locale,
+        kokoro_default_speed=default_speed,
     )
-

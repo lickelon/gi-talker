@@ -11,18 +11,17 @@ async def run_bot() -> None:
     configure_logging()
     # .env 기반 설정 로딩
     settings = load_settings()
-    # Kokoro 엔진은 현재 자리 표시자이므로 모델 경로는 추후 전달
-    engine = KokoroEngine(model_path=settings_path_placeholder())
+    # Kokoro 엔진은 환경 변수에서 지정한 모델/음성을 사용해 초기화
+    engine = KokoroEngine(
+        model_path=settings.kokoro_model_path,
+        voices_path=settings.kokoro_voices_path,
+        default_voice=settings.kokoro_default_voice,
+        default_locale=settings.kokoro_default_locale,
+        default_speed=settings.kokoro_default_speed,
+    )
     bot = KokoroTTSBot(settings=settings, tts_engine=engine)
     register_commands(bot)
     await bot.start(settings.token)
-
-
-def settings_path_placeholder():
-    # 모델 경로가 확정되기 전까지 임시 Path 객체를 반환
-    from pathlib import Path
-
-    return Path("models/kokoro-82m.onnx")
 
 
 def main() -> None:
