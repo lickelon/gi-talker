@@ -6,22 +6,21 @@ from typing import Optional
 
 import discord
 from discord import app_commands
-from discord.ext import commands
 
 from .config import BotSettings
 from .tts import MeloTtsEngine, SynthesisRequest
 from .voice import VoiceSession, ensure_voice
 
 
-class MeloTTSBot(commands.Bot):
+class MeloTTSBot(discord.Client):
     def __init__(self, settings: BotSettings, tts_engine: MeloTtsEngine) -> None:
         self._settings = settings
         self._tts_engine = tts_engine
         self._logger = logging.getLogger("gi_talker.bot")
         self._voice_session: Optional[VoiceSession] = None
-
         intents = discord.Intents.default()
-        super().__init__(command_prefix=settings.command_prefix, intents=intents)
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self) -> None:
         await self.tree.sync()
