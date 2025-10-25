@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Optional
 
 import discord
 from discord import app_commands
 
 from .config import BotSettings
+from .preferences import UserPreferences
 from .tts import MeloTtsEngine, SynthesisRequest
 from .voice import VoiceSession, ensure_voice
 
@@ -22,6 +24,7 @@ class MeloTTSBot(discord.Client):
         intents = discord.Intents.default()
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
+        self._preferences = UserPreferences(Path("data/preferences.json"))
 
     async def setup_hook(self) -> None:
         if self._command_guild_ids:
@@ -113,10 +116,27 @@ def register_commands(bot: MeloTTSBot) -> None:
             await interaction.followup.send(str(exc), ephemeral=True)
             return
 
+        available = bot._tts_engine.available_speakers()
+        preferred = bot._preferences.get_speaker(interaction.user.id)
+        speaker_name = preferred or bot._settings.melotts_speaker
+        if speaker_name and speaker_name not in available:
+            if preferred:
+                bot._preferences.clear_speaker(interaction.user.id)
+                await interaction.followup.send(
+                    "설정된 화자를 찾을 수 없어 기본 화자로 전환할게요.", ephemeral=True
+                )
+                speaker_name = bot._settings.melotts_speaker
+            if speaker_name and speaker_name not in available:
+                speaker_name = None
+
+        speaker_id = bot._settings.melotts_speaker_id
+        if preferred:
+            speaker_id = None
+
         request = SynthesisRequest(
             text=text,
-            speaker=bot._settings.melotts_speaker,
-            speaker_id=bot._settings.melotts_speaker_id,
+            speaker=speaker_name,
+            speaker_id=speaker_id,
             speed=bot._settings.melotts_speed,
             sdp_ratio=bot._settings.melotts_sdp_ratio,
             noise_scale=bot._settings.melotts_noise_scale,
@@ -144,3 +164,45 @@ def register_commands(bot: MeloTTSBot) -> None:
             await interaction.followup.send(
                 "재생 중 문제가 발생했어요.", ephemeral=True
             )
+
+    @bot.tree.command(name="set_voice", description="사용할 화자를 지정합니다.")
+    @app_commands.describe(speaker="사용할 화자 이름")
+    async def set_voice(interaction: discord.Interaction, speaker: str) -> None:
+        available = bot._tts_engine.available_speakers()
+        if speaker not in available:
+            await interaction.response.send_message(
+                f"'{speaker}' 화자를 찾을 수 없어요.", ephemeral=True
+            )
+            return
+
+        bot._preferences.set_speaker(interaction.user.id, speaker)
+        await interaction.response.send_message(
+            f"{speaker} 화자를 사용하도록 설정했어요.", ephemeral=True
+        )
+
+    @set_voice.autocomplete("speaker")
+    async def set_voice_autocomplete(
+        interaction: discord.Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
+        available = bot._tts_engine.available_speakers()
+        current_lower = current.lower()
+        matches = [
+            app_commands.Choice(name=name, value=name)
+            for name in available
+            if current_lower in name.lower()
+        ]
+        return matches[:25]
+
+    @bot.tree.command(name="reset_voice", description="개인 화자 설정을 초기화합니다.")
+    async def reset_voice(interaction: discord.Interaction) -> None:
+        current = bot._preferences.get_speaker(interaction.user.id)
+        if not current:
+            await interaction.response.send_message(
+                "개인 화자 설정이 되어 있지 않아요.", ephemeral=True
+            )
+            return
+
+        bot._preferences.clear_speaker(interaction.user.id)
+        await interaction.response.send_message(
+            "개인 화자 설정을 초기화했어요.", ephemeral=True
+        )
