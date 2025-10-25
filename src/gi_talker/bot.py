@@ -117,5 +117,14 @@ def register_commands(bot: KokoroTTSBot) -> None:
             return
 
         await ctx.reply(
-            f"샘플레이트 {result.sample_rate}Hz 합성 데이터를 확보했어요. 곧 재생 경로를 연결할게요."
+            f"샘플레이트 {result.sample_rate}Hz 합성 데이터를 확보했어요. 재생을 시작할게요."
         )
+
+        try:
+            await session.play_pcm(result.pcm, result.sample_rate)
+        except Exception as exc:
+            bot._logger.exception("재생 실패", exc_info=exc)
+            await ctx.reply("재생 중 문제가 발생했어요.")
+            return
+
+        await ctx.reply("재생을 마쳤어요.")

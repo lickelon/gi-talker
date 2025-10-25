@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import tempfile
+
+import numpy as np
 import discord
 
 
@@ -15,18 +19,36 @@ class VoiceSession:
         # 현재 연결된 채널을 노출
         return self._voice_client.channel
 
-    async def play_pcm(self, pcm_path: str) -> None:
-        # FFmpeg 기반 오디오 소스로 PCM 파일 재생 (추후 스트림 교체 예정)
+    async def play_pcm(self, pcm: bytes, sample_rate: int) -> None:
+        # 합성 결과를 임시 WAV 파일로 저장 후 FFmpeg를 통해 재생
         async with self._play_lock:
-            source = discord.FFmpegPCMAudio(pcm_path)
-            self._voice_client.play(source)
-            # discord.py는 blocking 재생이므로 완료까지 poll
-            while self._voice_client.is_playing():
-                await asyncio.sleep(0.1)
+            wav_path = self._write_temp_wav(pcm, sample_rate)
+            try:
+                source = discord.FFmpegPCMAudio(
+                    wav_path,
+                    before_options="-loglevel warning",
+                    options="-f s16le -ac 2 -ar 48000",
+                )
+                self._voice_client.play(source)
+                # discord.py는 blocking 재생이므로 완료까지 poll
+                while self._voice_client.is_playing():
+                    await asyncio.sleep(0.1)
+            finally:
+                if os.path.exists(wav_path):
+                    os.remove(wav_path)
 
     async def disconnect(self) -> None:
         # 호출자가 명시적으로 연결 종료 가능하도록 메서드 제공
         await self._voice_client.disconnect()
+
+    def _write_temp_wav(self, pcm: bytes, sample_rate: int) -> str:
+        # numpy 배열로 변환해 soundfile을 통해 WAV 작성
+        data = np.frombuffer(pcm, dtype=np.int16)
+        with tempfile.NamedTemporaryFile("wb", suffix=".wav", delete=False) as tmp:
+            from soundfile import write as sf_write
+
+            sf_write(tmp.name, data, sample_rate, subtype="PCM_16")
+            return tmp.name
 
 
 async def ensure_voice(
